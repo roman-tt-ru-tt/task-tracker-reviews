@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вход · Отзывы Task Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1><a href="/">⭐ Отзывы о Task Tracker</a></h1>
+  </div>
+
+  <div class="form">
+    <div class="tabs">
+      <button class="tab active" id="t-log" onclick="tab('log')">🔑 Вход</button>
+      <button class="tab" id="t-reg" onclick="tab('reg')">📝 Регистрация</button>
+    </div>
+
+    <div id="lf">
+      <label>Никнейм</label>
+      <input type="text" id="lu">
+      <label>Пароль</label>
+      <input type="password" id="lp">
+      <button onclick="doLogin()">Войти</button>
+      <div class="err" id="le"></div>
+    </div>
+
+    <div id="rf" style="display:none">
+      <label>Никнейм (3–30 символов)</label>
+      <input type="text" id="ru">
+      <label>Пароль (мин. 6 символов)</label>
+      <input type="password" id="rp">
+      <button onclick="doRegister()">Зарегистрироваться</button>
+      <div class="err" id="re"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function tab(t) {
+  document.getElementById('t-log').classList.toggle('active', t === 'log');
+  document.getElementById('t-reg').classList.toggle('active', t === 'reg');
+  document.getElementById('lf').style.display = t === 'log' ? '' : 'none';
+  document.getElementById('rf').style.display = t === 'reg' ? '' : 'none';
+}
+
+async function doLogin() {
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  const er = document.getElementById('le');
+  er.textContent = '...';
+  const r = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p }),
+  });
+  const d = await r.json();
+  if (d.ok) { location.href = '/'; }
+  else { er.textContent = d.error || 'Ошибка'; }
+}
+
+async function doRegister() {
+  const u = document.getElementById('ru').value.trim();
+  const p = document.getElementById('rp').value;
+  const er = document.getElementById('re');
+  er.textContent = '...';
+  const r = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p }),
+  });
+  const d = await r.json();
+  if (d.ok) { location.href = '/'; }
+  else { er.textContent = d.error || 'Ошибка'; }
+}
+</script>
+</body>
+</html>
