@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Админ · Отзывы Task Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1><a href="/">⭐ Отзывы о Task Tracker</a></h1>
+    <a class="btn" href="/">← На главную</a>
+  </div>
+
+  <h2 style="color:#a29bfe;margin-bottom:12px">👑 Модерация отзывов</h2>
+
+  <div class="tabs">
+    <a class="tab active" id="t-pending" href="#" onclick="load('pending');return false">⏳ На проверке</a>
+    <a class="tab" id="t-approved" href="#" onclick="load('approved');return false">✅ Одобренные</a>
+    <a class="tab" id="t-rejected" href="#" onclick="load('rejected');return false">❌ Отклонённые</a>
+  </div>
+
+  <div id="list"><div class="empty">Загрузка...</div></div>
+</div>
+
+<script>
+let currentStatus = 'pending';
+
+async function load(status) {
+  currentStatus = status;
+  ['pending', 'approved', 'rejected'].forEach(s => {
+    document.getElementById('t-' + s).classList.toggle('active', s === status);
+  });
+
+  const r = await fetch('/api/admin/list?status=' + status);
+  if (r.status === 403) {
+    document.getElementById('list').innerHTML = '<div class="empty">Доступ только для админа</div>';
+    return;
+  }
+  const d = await r.json();
+  const list = document.getElementById('list');
+  if (!d.reviews || d.reviews.length === 0) {
+    list.innerHTML = '<div class="empty">Пусто</div>';
+    return;
+  }
+  let h = '';
+  for (const rev of d.reviews) {
+    const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+    h += '<div class="card">';
+    h += '<div class="stars">' + stars + '</div>';
+    h += '<h3>' + esc(rev.title) + '</h3>';
+    h += '<div class="meta">👤 ' + esc(rev.username) + ' · ' + rev.created_at + ' · #' + rev.id + '</div>';
+    h += '<div class="body">' + esc(rev.body) + '</div>';
+    if (status === 'pending') {
+      h += '<div class="card-actions">';
+      h += '<button class="btn bs" onclick="moderate(' + rev.id + ',\'approve\')">✅ Одобрить</button>';
+      h += '<button class="btn bd" onclick="moderate(' + rev.id + ',\'reject\')">❌ Отклонить</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  list.innerHTML = h;
+}
+
+async function moderate(id, action) {
+  await fetch('/api/admin/moderate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, action }),
+  });
+  load(currentStatus);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+load('pending');
+</script>
+</body>
+</html>
