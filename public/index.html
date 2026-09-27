@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Отзывы о Task Tracker</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1><a href="/">⭐ Отзывы о Task Tracker</a></h1>
+    <div id="nav"></div>
+  </div>
+
+  <div class="tabs">
+    <a class="tab active" href="?sort=new" id="t-new">🆕 Новые</a>
+    <a class="tab" href="?sort=top" id="t-top">⭐ Лучшие</a>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <input type="text" id="q" placeholder="Поиск по отзывам..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2a44;background:#0a0a12;color:#e0e0e0;font-size:14px;outline:none">
+  </div>
+
+  <div id="list"><div class="empty">Загрузка...</div></div>
+</div>
+
+<script>
+async function loadNav() {
+  const r = await fetch('/api/me');
+  const d = await r.json();
+  const nav = document.getElementById('nav');
+  if (d.user) {
+    let h = '<span style="color:#888;font-size:13px;margin-right:8px">👤 ' + d.user.username + '</span>';
+    h += '<a class="btn bp" href="/new.html">✍️ Написать отзыв</a> ';
+    if (d.user.is_admin) h += '<a class="btn bi" href="/admin.html">👑 Админ</a> ';
+    h += '<button class="btn" onclick="logout()">🚪 Выйти</button>';
+    nav.innerHTML = h;
+  } else {
+    nav.innerHTML = '<a class="btn bp" href="/login.html">🔑 Войти</a>';
+  }
+}
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+async function loadReviews() {
+  const params = new URLSearchParams(location.search);
+  const sort = params.get('sort') || 'new';
+  const q = document.getElementById('q').value.trim();
+
+  document.getElementById('t-new').classList.toggle('active', sort === 'new');
+  document.getElementById('t-top').classList.toggle('active', sort === 'top');
+
+  const url = '/api/reviews?sort=' + sort + (q ? '&q=' + encodeURIComponent(q) : '');
+  const r = await fetch(url);
+  const d = await r.json();
+  const list = document.getElementById('list');
+  if (!d.reviews || d.reviews.length === 0) {
+    list.innerHTML = '<div class="empty">Пока нет отзывов. Будь первым!</div>';
+    return;
+  }
+  let h = '';
+  for (const rev of d.reviews) {
+    const stars = '★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating);
+    h += '<div class="card">';
+    h += '<div class="stars">' + stars + '</div>';
+    h += '<h3>' + escapeHtml(rev.title) + '</h3>';
+    h += '<div class="meta">👤 ' + escapeHtml(rev.username) + ' · ' + rev.created_at + '</div>';
+    h += '<div class="body">' + escapeHtml(rev.body) + '</div>';
+    h += '</div>';
+  }
+  list.innerHTML = h;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('q').addEventListener('input', debounce(loadReviews, 300));
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+loadNav();
+loadReviews();
+</script>
+</body>
+</html>
